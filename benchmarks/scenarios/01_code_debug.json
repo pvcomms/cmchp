@@ -1,0 +1,56 @@
+{
+  "name": "code_debug_handoff",
+  "description": "Mid-investigation handoff: Python memory leak, already found psutil stats, suspect asyncio event loop",
+  "token_budget": 3000,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Help me debug a memory leak in my FastAPI server. It grows from 200MB to 2GB over 6 hours."
+    },
+    {
+      "role": "assistant",
+      "content": "Let's profile this systematically. I'll start with psutil to get baseline memory stats, then look at the event loop and connection pooling."
+    },
+    {
+      "role": "user",
+      "content": "Here's the psutil output: rss=1.8GB, vms=3.2GB, num_threads=847, open_files=2341"
+    },
+    {
+      "role": "assistant",
+      "content": "847 threads and 2341 open files are the smoking gun. This is almost certainly a connection pool leak or unclosed file handles. Let me check your database connection setup and any background tasks."
+    },
+    {
+      "role": "user",
+      "content": "We use SQLAlchemy with async session factory. Background tasks run via asyncio.create_task()."
+    },
+    {
+      "role": "assistant",
+      "content": "Classic pattern: asyncio tasks that aren't being awaited or tracked. If create_task() results aren't stored, the tasks run but exceptions are silently swallowed, AND if they hold DB sessions, those sessions never close. Check if you're storing task references."
+    },
+    {
+      "role": "user",
+      "content": "I checked — we do store them in a set, but we never remove completed tasks from the set."
+    },
+    {
+      "role": "assistant",
+      "content": "Found it. Tasks accumulating in the set means their memory (including any closed-over DB sessions) can't be GC'd. Fix: add a done callback that removes from the set. Also add task.add_done_callback(task_set.discard). But let me also check if the SQLAlchemy sessions are configured with pool_pre_ping and pool_recycle..."
+    }
+  ],
+  "tool_history": [
+    {
+      "tool": "bash",
+      "input": "ps aux | grep python",
+      "output": "python3 server.py PID=12847 RSS=1843200"
+    },
+    {
+      "tool": "bash",
+      "input": "python3 -c \"import psutil; p=psutil.Process(12847); print(p.memory_info(), p.num_threads(), len(p.open_files()))\"",
+      "output": "pmem(rss=1932735488, vms=3435008000) 847 2341"
+    },
+    {
+      "tool": "read_file",
+      "input": "app/database.py",
+      "output": "async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)\ntask_set = set()\ndef create_background_task(coro):\n    task = asyncio.create_task(coro)\n    task_set.add(task)\n    return task"
+    }
+  ]
+}

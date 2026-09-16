@@ -1,0 +1,56 @@
+{
+  "name": "research_handoff",
+  "description": "Mid-task handoff: competitive analysis for a prediction markets startup, 3 of 5 competitors analyzed",
+  "token_budget": 2000,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Do a competitive analysis for Keep — biometric prediction markets. Compare vs Beeminder, Metaculus, Manifold Markets, PredictIt, and Augur."
+    },
+    {
+      "role": "assistant",
+      "content": "Starting with Beeminder since you mentioned it as the primary comp. Then I'll work through the others."
+    },
+    {
+      "role": "user",
+      "content": "Good, go ahead."
+    },
+    {
+      "role": "assistant",
+      "content": "Beeminder: commitment contracts with money on the line. $0 stakes initially, user sets their own amount. Strong on personal goals, weak on social/market dynamics. No biometric integration. B2C, $0-$270/year tiers. Key insight: they have 10 years of data on what commitment mechanisms work. Differentiator vs Keep: Keep uses external oracle (Whoop API), Beeminder relies on self-reported data — massive integrity gap."
+    },
+    {
+      "role": "user",
+      "content": "Great. Now Metaculus."
+    },
+    {
+      "role": "assistant",
+      "content": "Metaculus: forecasting tournament platform. Points-based, no real money (US regulatory arbitrage). Strong at geopolitical/scientific questions. Audience: superforecasters, researchers. Not a competitor for Keep's core loop — different customer entirely. Relevant only if Keep eventually does public markets on aggregate biometric trends."
+    },
+    {
+      "role": "user",
+      "content": "Manifold Markets?"
+    },
+    {
+      "role": "assistant",
+      "content": "Manifold: play-money prediction markets on anything. Mana (in-game currency) only. Creative, community-driven, lots of personal/culture questions. Their resolution mechanism is manual (creator resolves) — this is Keep's key advantage: oracle-based auto-resolution is trustless and scalable. Manifold's TAM is engagement-driven entertainment; Keep's is behavior change with financial stakes."
+    }
+  ],
+  "tool_history": [
+    {
+      "tool": "web_search",
+      "input": "Beeminder pricing revenue model 2024",
+      "output": "Beeminder: freemium, paid tiers $0-$270/yr, ~$1M ARR estimated, 50k users"
+    },
+    {
+      "tool": "web_search",
+      "input": "Metaculus platform overview funding",
+      "output": "Metaculus: nonprofit-ish, $6M seed 2022, 30k forecasters, no real money"
+    },
+    {
+      "tool": "web_search",
+      "input": "Manifold Markets user base revenue",
+      "output": "Manifold: ~100k users, no revenue (play money only), Y Combinator W22"
+    }
+  ]
+}

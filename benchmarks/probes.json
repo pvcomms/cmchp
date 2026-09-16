@@ -1,0 +1,116 @@
+{
+  "_comment": "Ground truth for the handoff benchmark. Each probe is a question whose answer appears ONLY in the source conversation, so a model that never saw that conversation cannot guess it. `accept` lists substrings that count as correct; matching is case-insensitive and any one is enough. Written by reading the scenarios, not by asking a model.",
+
+  "code_debug_handoff": [
+    {
+      "id": "threads",
+      "question": "How many OS threads was the leaking process running?",
+      "accept": ["847"]
+    },
+    {
+      "id": "open_files",
+      "question": "How many open file handles did the process have?",
+      "accept": ["2341", "2,341"]
+    },
+    {
+      "id": "pid",
+      "question": "What was the process ID of the server?",
+      "accept": ["12847", "12,847"]
+    },
+    {
+      "id": "orm",
+      "question": "Which database library and session pattern is the app using?",
+      "accept": ["sqlalchemy"]
+    },
+    {
+      "id": "root_cause",
+      "question": "What was identified as the root cause of the leak?",
+      "accept": [
+        "never remove",
+        "not removed",
+        "never removed",
+        "accumulat",
+        "not being removed",
+        "removed from the set"
+      ]
+    },
+    {
+      "id": "fix",
+      "question": "What specific fix was proposed?",
+      "accept": [
+        "done callback",
+        "add_done_callback",
+        "done_callback",
+        "discard"
+      ]
+    }
+  ],
+
+  "research_handoff": [
+    {
+      "id": "beeminder_arr",
+      "question": "What is Beeminder's estimated annual revenue?",
+      "accept": ["$1m", "1m arr", "~$1m", "1 million"]
+    },
+    {
+      "id": "beeminder_users",
+      "question": "How many users does Beeminder have?",
+      "accept": ["50k", "50,000"]
+    },
+    {
+      "id": "metaculus_seed",
+      "question": "How much seed funding did Metaculus raise, and in what year?",
+      "accept": ["$6m", "6m"]
+    },
+    {
+      "id": "metaculus_forecasters",
+      "question": "How many forecasters does Metaculus have?",
+      "accept": ["30k", "30,000"]
+    },
+    {
+      "id": "manifold_yc",
+      "question": "Which Y Combinator batch was Manifold Markets in?",
+      "accept": ["w22", "winter 2022"]
+    },
+    {
+      "id": "manifold_currency",
+      "question": "What currency does Manifold Markets use?",
+      "accept": ["mana", "play money", "play-money"]
+    }
+  ],
+
+  "multimodel_chain": [
+    {
+      "id": "expiry",
+      "question": "How long before a magic link token expires?",
+      "accept": ["15 min", "15min", "15 minute", "fifteen min"]
+    },
+    {
+      "id": "models",
+      "question": "Which two Prisma models were defined?",
+      "accept": ["magiclink", "magic link"]
+    },
+    {
+      "id": "email_service",
+      "question": "Which service sends the magic link email?",
+      "accept": ["resend"]
+    },
+    {
+      "id": "single_use",
+      "question": "How is the verify route made single-use?",
+      "accept": [
+        "used=true",
+        "used = true",
+        "mark used",
+        "marks used",
+        "used flag",
+        "atomic"
+      ]
+    },
+    {
+      "id": "remaining",
+      "question": "What work was listed as still remaining?",
+      "accept": ["middleware", "dashboard"]
+    }
+  ]
+}

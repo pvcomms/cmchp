@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CMCHP — Cross-Model Context Handoff Protocol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* === Reset & Base === */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0d0d0d;
+        --surface: #141414;
+        --surface-2: #1a1a1a;
+        --surface-3: #222222;
+        --border: #2a2a2a;
+        --border-bright: #3a3a3a;
+        --text: #e8e8e2;
+        --text-dim: #888884;
+        --text-muted: #555551;
+        --accent: #4ade80;
+        --accent-dim: #1a4a2a;
+        --accent-glow: rgba(74, 222, 128, 0.08);
+        --blue: #60a5fa;
+        --blue-dim: #1a2a4a;
+        --yellow: #fcd34d;
+        --yellow-dim: #3a2e0a;
+        --red: #f87171;
+        --red-dim: #3a1a1a;
+        --purple: #c084fc;
+        --font-mono: "JetBrains Mono", "Fira Code", monospace;
+        --radius: 6px;
+        --radius-sm: 4px;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.6;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* === Layout === */
+      .app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-mark {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--accent);
+        letter-spacing: 0.05em;
+      }
+
+      .logo-sep {
+        color: var(--text-muted);
+        font-weight: 300;
+      }
+
+      .logo-tag {
+        color: var(--text-dim);
+        font-size: 11px;
+        font-weight: 300;
+        letter-spacing: 0.02em;
+      }
+
+      .header-badge {
+        font-size: 10px;
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        padding: 3px 8px;
+        border-radius: var(--radius-sm);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        padding: 24px;
+        border-right: 1px solid var(--border);
+      }
+
+      .panel:last-child {
+        border-right: none;
+      }
+
+      /* === Section Labels === */
+      .label {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--text-muted);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      /* === Inputs === */
+      textarea,
+      select {
+        width: 100%;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        padding: 10px 12px;
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      textarea:focus,
+      select:focus {
+        border-color: var(--border-bright);
+      }
+
+      textarea::placeholder {
+        color: var(--text-muted);
+      }
+
+      select {
+        resize: none;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555551'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 28px;
+      }
+
+      select option {
+        background: var(--surface-3);
+      }
+
+      /* === Model Selector Row === */
+      .model-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .model-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      /* === Collapsible === */
+      .collapsible-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0;
+        padding: 6px 0;
+      }
+
+      .collapsible-header:hover .label {
+        color: var(--text-dim);
+      }
+
+      .chevron {
+        color: var(--text-muted);
+        font-size: 9px;
+        transition: transform 0.2s;
+        display: inline-block;
+      }
+
+      .collapsible-header.open .chevron {
+        transform: rotate(90deg);
+      }
+
+      .collapsible-body {
+        display: none;
+        margin-bottom: 16px;
+      }
+
+      .collapsible-body.open {
+        display: block;
+      }
+
+      /* === Buttons === */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-radius: var(--radius);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          opacity 0.15s;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #000;
+        border-color: var(--accent);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: #5bef91;
+      }
+
+      .btn-secondary {
+        background: var(--surface-3);
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        border-color: var(--border-bright);
+        background: #2a2a2a;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-dim);
+        border-color: var(--border);
+      }
+
+      .btn-ghost:hover:not(:disabled) {
+        color: var(--text);
+        border-color: var(--border-bright);
+      }
+
+      .btn-danger {
+        background: var(--red-dim);
+        color: var(--red);
+        border-color: #4a2020;
+      }
+
+      .btn-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+
+      /* === Tabs === */
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+        gap: 0;
+      }
+
+      .tab {
+        padding: 10px 16px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      .tab:hover {
+        color: var(--text-dim);
+      }
+      .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      /* === JSON Viewer === */
+      .json-viewer {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        overflow-x: auto;
+        font-size: 11.5px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 540px;
+        overflow-y: auto;
+      }
+
+      .json-viewer::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .json-viewer::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      .json-viewer::-webkit-scrollbar-thumb {
+        background: var(--border-bright);
+        border-radius: 3px;
+      }
+
+      /* JSON syntax highlighting */
+      .j-key {
+        color: var(--blue);
+      }
+      .j-str {
+        color: #a3e6a3;
+      }
+      .j-num {
+        color: var(--yellow);
+      }
+      .j-bool {
+        color: var(--accent);
+      }
+      .j-null {
+        color: var(--text-muted);
+      }
+      .j-punc {
+        color: var(--text-muted);
+      }
+
+      /* Section color coding */
+      .j-goals {
+        color: var(--accent);
+      }
+      .j-memory {
+        color: var(--blue);
+      }
+      .j-trace {
+        color: var(--yellow);
+      }
+      .j-meta {
+        color: var(--purple);
+      }
+      .j-hint {
+        color: var(--red);
+      }
+
+      /* === Expanded Text === */
+      .expanded-text {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        font-size: 12px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 480px;
+        overflow-y: auto;
+        color: var(--text);
+      }
+
+      .expanded-text::-webkit-scrollbar {
+        width: 6px;
+      }
+      .expanded-text::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      .expanded-text::-webkit-scrollbar-thumb {
+        background: var(--border-bright);
+        border-radius: 3px;
+      }
+
+      /* === Model Badge === */
+      .model-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+
+      .badge-claude {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid #1e5e38;
+      }
+      .badge-openai {
+        background: var(--blue-dim);
+        color: var(--blue);
+        border: 1px solid #1e3a6e;
+      }
+      .badge-gemini {
+        background: var(--yellow-dim);
+        color: var(--yellow);
+        border: 1px solid #5a4010;
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* === Live Handoff === */
+      .handoff-input-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .handoff-input-row textarea {
+        flex: 1;
+        height: 60px;
+        resize: none;
+      }
+
+      .response-box {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        font-size: 12px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 380px;
+        overflow-y: auto;
+        color: var(--text);
+        margin-top: 12px;
+      }
+
+      .response-box::-webkit-scrollbar {
+        width: 6px;
+      }
+      .response-box::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      .response-box::-webkit-scrollbar-thumb {
+        background: var(--border-bright);
+        border-radius: 3px;
+      }
+
+      /* === Stats Bar === */
+      .stats-bar {
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        padding: 10px 24px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+      }
+
+      .stat-label {
+        color: var(--text-muted);
+      }
+      .stat-value {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .stat-value.good {
+        color: var(--accent);
+      }
+      .stat-value.warn {
+        color: var(--yellow);
+      }
+
+      .stat-sep {
+        width: 1px;
+        height: 14px;
+        background: var(--border);
+      }
+
+      /* === Loading === */
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 1.5px solid var(--border-bright);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* === Empty States === */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        text-align: center;
+        gap: 8px;
+        color: var(--text-muted);
+        font-size: 12px;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+      }
+
+      .empty-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+        opacity: 0.4;
+      }
+
+      /* === Error === */
+      .error-box {
+        background: var(--red-dim);
+        border: 1px solid #4a2020;
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        color: var(--red);
+        font-size: 11.5px;
+        line-height: 1.6;
+        margin-top: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      /* === Legend === */
+      .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+      }
+
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      /* === Token budget slider === */
+      .range-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .range-val {
+        font-size: 11px;
+        color: var(--text-dim);
+        min-width: 50px;
+        text-align: right;
+      }
+
+      /* === Footer === */
+      footer {
+        padding: 12px 24px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .footer-left {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .footer-right {
+        display: flex;
+        gap: 16px;
+      }
+      .footer-link {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      .footer-link:hover {
+        color: var(--text-dim);
+      }
+
+      /* === Spacing helpers === */
+      .mb4 {
+        margin-bottom: 4px;
+      }
+      .mb8 {
+        margin-bottom: 8px;
+      }
+      .mb12 {
+        margin-bottom: 12px;
+      }
+      .mb16 {
+        margin-bottom: 16px;
+      }
+      .mb20 {
+        margin-bottom: 20px;
+      }
+
+      /* === Section title === */
+      .section-title {
+        font-size: 12px;
+        color: var(--text-dim);
+        font-weight: 500;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* Key–value table */
+      .kv-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .kv-table td {
+        padding: 4px 8px;
+        font-size: 11px;
+        vertical-align: top;
+      }
+      .kv-table td:first-child {
+        color: var(--text-muted);
+        width: 40%;
+        white-space: nowrap;
+      }
+      .kv-table td:last-child {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- HEADER -->
+      <header>
+        <div class="logo">
+          <span class="logo-mark">CMCHP</span>
+          <span class="logo-sep">/</span>
+          <span class="logo-tag">Cross-Model Context Handoff Protocol</span>
+        </div>
+        <span class="header-badge">v0.1 · research prototype</span>
+      </header>
+
+      <!-- MAIN GRID -->
+      <main>
+        <!-- LEFT: INPUT PANEL -->
+        <div class="panel" id="input-panel">
+          <div class="section-title">Input</div>
+
+          <!-- Conversation -->
+          <div class="label mb8">Conversation (JSON array or freeform)</div>
+          <textarea
+            id="conversation-input"
+            rows="10"
+            placeholder='[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]'
+          ></textarea>
+
+          <div class="btn-row mb20" style="margin-top: 8px">
+            <button
+              class="btn btn-ghost"
+              style="font-size: 11px; padding: 6px 12px"
+              onclick="loadExample()"
+            >
+              ↓ Load Example
+            </button>
+          </div>
+
+          <!-- Tool History (collapsible) -->
+          <div class="collapsible-header mb4" onclick="toggleCollapsible(this)">
+            <span class="chevron">▶</span>
+            <span class="label" style="margin-bottom: 0">Tool History</span>
+            <span
+              style="
+                font-size: 10px;
+                color: var(--text-muted);
+                margin-left: 4px;
+              "
+              >(optional)</span
+            >
+          </div>
+          <div class="collapsible-body">
+            <textarea
+              id="tool-history-input"
+              rows="5"
+              placeholder='[{"tool":"bash","args":{"cmd":"npm run build"},"result":"Build failed: OOM"}]'
+            ></textarea>
+          </div>
+
+          <!-- Model selectors -->
+          <div class="model-row">
+            <div class="model-group">
+              <div class="label">Source model</div>
+              <select id="source-model">
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                <option value="claude-opus-4-7">Claude Opus 4.7</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              </select>
+            </div>
+            <div class="model-group">
+              <div class="label">Target model</div>
+              <select id="target-model">
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o mini</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                <option value="claude-opus-4-7">Claude Opus 4.7</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Token budget -->
+          <div class="label mb8">Token budget</div>
+          <div class="range-row mb16">
+            <input
+              type="range"
+              id="token-budget"
+              min="500"
+              max="8000"
+              step="500"
+              value="4000"
+              oninput="
+                document.getElementById('budget-val').textContent =
+                  this.value + ' tok'
+              "
+            />
+            <span class="range-val" id="budget-val">4000 tok</span>
+          </div>
+
+          <!-- Compress button -->
+          <div class="btn-row">
+            <button
+              class="btn btn-primary"
+              id="compress-btn"
+              onclick="doCompress()"
+            >
+              Compress →
+            </button>
+            <span
+              id="compress-status"
+              style="font-size: 11px; color: var(--text-muted)"
+            ></span>
+          </div>
+        </div>
+
+        <!-- RIGHT: OUTPUT PANEL -->
+        <div class="panel" id="output-panel">
+          <!-- Tabs -->
+          <div class="tabs">
+            <div class="tab active" data-tab="wire">Wire Format</div>
+            <div class="tab" data-tab="expanded">Expanded Context</div>
+            <div class="tab" data-tab="handoff">Live Handoff</div>
+          </div>
+
+          <!-- Wire Format Tab -->
+          <div class="tab-content active" id="tab-wire">
+            <div class="legend">
+              <div class="legend-item">
+                <span
+                  class="legend-dot"
+                  style="background: var(--accent)"
+                ></span
+                >goals
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: var(--blue)"></span
+                >memory
+              </div>
+              <div class="legend-item">
+                <span
+                  class="legend-dot"
+                  style="background: var(--yellow)"
+                ></span
+                >trace
+              </div>
+              <div class="legend-item">
+                <span
+                  class="legend-dot"
+                  style="background: var(--purple)"
+                ></span
+                >meta
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: var(--red)"></span
+                >hint
+              </div>
+            </div>
+            <div id="wire-content">
+              <div class="empty-state">
+                <div class="empty-icon">◈</div>
+                <div>
+                  No packet yet. Compress a conversation to see the wire format.
+                </div>
+              </div>
+            </div>
+            <div id="wire-error" class="error-box" style="display: none"></div>
+          </div>
+
+          <!-- Expanded Context Tab -->
+          <div class="tab-content" id="tab-expanded">
+            <div id="expanded-model-badge" style="display: none"></div>
+            <div id="expanded-content">
+              <div class="empty-state">
+                <div class="empty-icon">⟳</div>
+                <div>Compress first, then expand for a target model.</div>
+              </div>
+            </div>
+            <div
+              id="expand-error"
+              class="error-box"
+              style="display: none"
+            ></div>
+            <div
+              class="btn-row"
+              id="expand-btn-row"
+              style="display: none; margin-top: 12px"
+            >
+              <button
+                class="btn btn-secondary"
+                id="expand-btn"
+                onclick="doExpand()"
+              >
+                Expand for <span id="expand-target-label">—</span>
+              </button>
+              <span
+                id="expand-status"
+                style="font-size: 11px; color: var(--text-muted)"
+              ></span>
+            </div>
+          </div>
+
+          <!-- Live Handoff Tab -->
+          <div class="tab-content" id="tab-handoff">
+            <div id="handoff-pre" class="empty-state" style="margin-bottom: 0">
+              <div class="empty-icon">⚡</div>
+              <div>Compress a packet first, then send a live handoff.</div>
+            </div>
+            <div id="handoff-form" style="display: none">
+              <div class="label mb8">Target model</div>
+              <select id="handoff-target-model" style="margin-bottom: 12px">
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o mini</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                <option value="claude-opus-4-7">Claude Opus 4.7</option>
+              </select>
+              <div class="label mb8">User message</div>
+              <textarea
+                id="handoff-message"
+                rows="3"
+                placeholder="Continue the task."
+              >
+Continue the task.</textarea
+              >
+              <div class="btn-row">
+                <button
+                  class="btn btn-primary"
+                  id="handoff-btn"
+                  onclick="doHandoff()"
+                >
+                  Send →
+                </button>
+                <span
+                  id="handoff-status"
+                  style="font-size: 11px; color: var(--text-muted)"
+                ></span>
+              </div>
+              <div id="handoff-response-wrap" style="display: none">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-top: 16px;
+                    margin-bottom: 8px;
+                  "
+                >
+                  <div id="handoff-badge"></div>
+                  <span
+                    id="handoff-timing"
+                    style="font-size: 10px; color: var(--text-muted)"
+                  ></span>
+                </div>
+                <div id="handoff-response" class="response-box"></div>
+              </div>
+            </div>
+            <div
+              id="handoff-error"
+              class="error-box"
+              style="display: none"
+            ></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- STATS BAR -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat">
+          <span class="stat-label">status</span>
+          <span class="stat-value" id="stat-status">—</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">original</span>
+          <span class="stat-value" id="stat-original">—</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">compressed</span>
+          <span class="stat-value" id="stat-compressed">—</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">ratio</span>
+          <span class="stat-value" id="stat-ratio">—</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">roundtrip</span>
+          <span class="stat-value" id="stat-rt">—</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">session</span>
+          <span
+            class="stat-value"
+            id="stat-session"
+            style="font-size: 10px; letter-spacing: 0.02em"
+            >—</span
+          >
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <footer>
+        <div class="footer-left">
+          CMCHP v0.1 — research prototype · semantic agent state compression
+        </div>
+        <div class="footer-right">
+          <a class="footer-link" href="/api/health" target="_blank">health</a>
+          <a class="footer-link" href="/docs" target="_blank">api docs</a>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      // === State ===
+      let currentPacket = null;
+
+      // === Tab switching ===
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const target = tab.dataset.tab;
+          document
+            .querySelectorAll(".tab")
+            .forEach((t) => t.classList.remove("active"));
+          document
+            .querySelectorAll(".tab-content")
+            .forEach((c) => c.classList.remove("active"));
+          tab.classList.add("active");
+          document.getElementById("tab-" + target).classList.add("active");
+        });
+      });
+
+      // === Collapsible ===
+      function toggleCollapsible(header) {
+        header.classList.toggle("open");
+        const body = header.nextElementSibling;
+        body.classList.toggle("open");
+      }
+
+      // === Load Example ===
+      function loadExample() {
+        const example = [
+          {
+            role: "user",
+            content:
+              "We're debugging a Node.js service that's leaking memory in production. RSS climbs from ~120MB to >2GB over 6 hours then crashes. I've enabled --expose-gc and can see heap snapshots.",
+          },
+          {
+            role: "assistant",
+            content:
+              "Let's isolate the leak. First — is the growth linear or step-function? Linear usually means accumulating event listeners or large caches; step-function means something allocates in batches (e.g. a cron job or request burst). Run `process.memoryUsage()` every 30s and plot it. Also: what version of Node, and are you running behind a load balancer that might be masking per-instance state?",
+          },
+          {
+            role: "user",
+            content:
+              "Node 20.11, single instance. Growth is roughly linear. I took a heap snapshot after 2h and saw ~180k instances of a class called 'RequestContext'. Our middleware creates one per request but something's holding refs.",
+          },
+          {
+            role: "assistant",
+            content:
+              "That's the culprit. 180k RequestContext instances means your middleware is creating them but never releasing — something in your request lifecycle is capturing a closure or adding them to a global/module-level array. Check: (1) any event emitters that attach request-scoped listeners without cleanup, (2) logger instances that capture req/res in closures, (3) AsyncLocalStorage stores that aren't cleared. Can you share the RequestContext constructor and where it's instantiated in middleware?",
+          },
+          {
+            role: "user",
+            content:
+              "Found it — our metrics collector was pushing every RequestContext into a module-level `activeRequests` array for in-flight tracking but the cleanup on `res.on('finish')` was never firing because we had a `try/catch` that swallowed the error in the finish handler. The array just accumulated forever.",
+          },
+          {
+            role: "assistant",
+            content:
+              "Classic. Fix: wrap the finish handler in its own try/catch that at minimum removes the entry regardless of error, and add a WeakSet fallback or a size cap with a warning log so you catch this class of bug in staging. Also consider using AsyncLocalStorage for request context instead of a global array — it handles cleanup automatically at the async boundary. Want me to write the patched middleware?",
+          },
+        ];
+
+        const toolHistory = [
+          {
+            tool: "bash",
+            args: {
+              cmd: "node -e \"const v8 = require('v8'); setInterval(() => console.log(v8.getHeapStatistics()), 5000)\"",
+            },
+            result:
+              "heap_used_size: 124MB, heap_total: 180MB (t=0); 340MB/480MB (t=5min); 890MB/1.1GB (t=15min)",
+            status: "completed",
+          },
+          {
+            tool: "read_file",
+            args: { path: "src/middleware/requestContext.js" },
+            result:
+              "class RequestContext { constructor(req) { this.id = uuid(); this.startTime = Date.now(); this.req = req; } } module.exports = RequestContext;",
+            status: "completed",
+          },
+        ];
+
+        document.getElementById("conversation-input").value = JSON.stringify(
+          example,
+          null,
+          2,
+        );
+        document.getElementById("tool-history-input").value = JSON.stringify(
+          toolHistory,
+          null,
+          2,
+        );
+
+        // Open tool history
+        const header = document.querySelector(".collapsible-header");
+        if (!header.classList.contains("open")) toggleCollapsible(header);
+      }
+
+      // === Compress ===
+      async function doCompress() {
+        const convRaw = document
+          .getElementById("conversation-input")
+          .value.trim();
+        const toolRaw = document
+          .getElementById("tool-history-input")
+          .value.trim();
+        const sourceModel = document.getElementById("source-model").value;
+        const targetModel = document.getElementById("target-model").value;
+        const tokenBudget = parseInt(
+          document.getElementById("token-budget").value,
+        );
+
+        if (!convRaw) {
+          showError(
+            "wire-error",
+            "Conversation is empty. Paste a JSON array or load the example.",
+          );
+          return;
+        }
+
+        let conversation,
+          toolHistory = [];
+        try {
+          // Try parsing as JSON array
+          conversation = JSON.parse(convRaw);
+          if (!Array.isArray(conversation)) {
+            // Wrap plain text as a single user message
+            conversation = [{ role: "user", content: convRaw }];
+          }
+        } catch {
+          // Freeform — split on lines and build alternating messages
+          conversation = [{ role: "user", content: convRaw }];
+        }
+
+        if (toolRaw) {
+          try {
+            toolHistory = JSON.parse(toolRaw);
+          } catch {
+            /* ignore */
+          }
+        }
+
+        setCompressState("loading");
+        hideError("wire-error");
+        const t0 = Date.now();
+
+        try {
+          const res = await fetch("/api/compress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              conversation,
+              tool_history: toolHistory,
+              source_model: sourceModel,
+              target_model: targetModel,
+              token_budget: tokenBudget,
+            }),
+          });
+
+          const elapsed = Date.now() - t0;
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || res.statusText);
+          }
+
+          const packet = await res.json();
+          currentPacket = packet;
+
+          renderWireFormat(packet);
+          updateStats(packet, elapsed);
+          enableExpandUI(targetModel);
+          enableHandoffUI();
+          setCompressState("done");
+        } catch (err) {
+          showError("wire-error", err.message);
+          setCompressState("error");
+          updateStatStatus("error");
+        }
+      }
+
+      // === Expand ===
+      async function doExpand() {
+        if (!currentPacket) return;
+        const targetModel = document.getElementById("target-model").value;
+
+        setExpandState("loading");
+        hideError("expand-error");
+
+        try {
+          const res = await fetch("/api/expand", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              packet: currentPacket,
+              target_model: targetModel,
+            }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || res.statusText);
+          }
+
+          const data = await res.json();
+          renderExpanded(data.expanded, data.target_model);
+          setExpandState("done");
+        } catch (err) {
+          showError("expand-error", err.message);
+          setExpandState("error");
+        }
+      }
+
+      // === Handoff ===
+      async function doHandoff() {
+        if (!currentPacket) return;
+        const targetModel = document.getElementById(
+          "handoff-target-model",
+        ).value;
+        const userMessage =
+          document.getElementById("handoff-message").value.trim() ||
+          "Continue the task.";
+
+        setHandoffState("loading");
+        hideError("handoff-error");
+        const t0 = Date.now();
+
+        try {
+          const res = await fetch("/api/handoff", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              packet: currentPacket,
+              target_model: targetModel,
+              user_message: userMessage,
+            }),
+          });
+
+          const elapsed = Date.now() - t0;
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || res.statusText);
+          }
+
+          const data = await res.json();
+          renderHandoffResponse(data.response, data.model, elapsed);
+          setHandoffState("done");
+        } catch (err) {
+          showError("handoff-error", err.message);
+          setHandoffState("error");
+        }
+      }
+
+      // === Rendering ===
+      function renderWireFormat(packet) {
+        const container = document.getElementById("wire-content");
+
+        // Section-aware JSON rendering
+        const html = syntaxHighlightPacket(packet);
+        container.innerHTML = `<div class="json-viewer">${html}</div>`;
+      }
+
+      function renderExpanded(text, model) {
+        document.getElementById("expanded-model-badge").style.display = "block";
+        document.getElementById("expanded-model-badge").innerHTML =
+          modelBadge(model);
+
+        const container = document.getElementById("expanded-content");
+        container.innerHTML = `<div class="expanded-text">${escapeHtml(text)}</div>`;
+      }
+
+      function renderHandoffResponse(text, model, elapsed) {
+        document.getElementById("handoff-response-wrap").style.display =
+          "block";
+        document.getElementById("handoff-badge").innerHTML = modelBadge(model);
+        document.getElementById("handoff-timing").textContent = `${elapsed}ms`;
+        document.getElementById("handoff-response").textContent = text;
+      }
+
+      // === JSON Syntax Highlighter ===
+      function syntaxHighlightPacket(packet) {
+        // Render section by section with color coding
+        const sections = {
+          goals: "j-goals",
+          working_memory: "j-memory",
+          decision_trace: "j-trace",
+          compression: "j-meta",
+          continuation_hint: "j-hint",
+          cmchp_version: "j-meta",
+          session_id: "j-meta",
+          timestamp: "j-meta",
+          source_model: "j-meta",
+          target_model: "j-meta",
+          raw_token_budget: "j-meta",
+          agent_state: null,
+          open_tool_calls: null,
+        };
+
+        // Full JSON string, then highlight
+        const jsonStr = JSON.stringify(packet, null, 2);
+        return highlightJson(jsonStr, sections);
+      }
+
+      function highlightJson(str, sectionColors) {
+        // Track current top-level key for section coloring
+        let currentSection = null;
+        let depth = 0;
+        let inString = false;
+        let result = "";
+        let i = 0;
+        const len = str.length;
+
+        while (i < len) {
+          const ch = str[i];
+
+          if (!inString && ch === '"') {
+            // Start of a string token — collect it
+            let j = i + 1;
+            while (j < len) {
+              if (str[j] === "\\") {
+                j += 2;
+                continue;
+              }
+              if (str[j] === '"') {
+                j++;
+                break;
+              }
+              j++;
+            }
+            const token = str.slice(i, j);
+            const raw = token.slice(1, -1); // strip quotes
+
+            // Is this a key? Look ahead for ':'
+            let k = j;
+            while (k < len && (str[k] === " " || str[k] === "\n")) k++;
+            const isKey = str[k] === ":";
+
+            if (isKey && depth === 1) {
+              currentSection = raw;
+            }
+
+            const cls = isKey
+              ? "j-key"
+              : sectionColors && currentSection && sectionColors[currentSection]
+                ? sectionColors[currentSection]
+                : "j-str";
+            result += `<span class="${cls}">${escapeHtml(token)}</span>`;
+            i = j;
+            continue;
+          }
+
+          if (!inString && (ch === "{" || ch === "[")) {
+            depth++;
+            result += `<span class="j-punc">${ch}</span>`;
+            i++;
+            continue;
+          }
+
+          if (!inString && (ch === "}" || ch === "]")) {
+            depth--;
+            if (depth === 0) currentSection = null;
+            result += `<span class="j-punc">${ch}</span>`;
+            i++;
+            continue;
+          }
+
+          if (!inString && (ch === ":" || ch === ",")) {
+            result += `<span class="j-punc">${ch}</span>`;
+            i++;
+            continue;
+          }
+
+          // Numbers
+          if (
+            !inString &&
+            ((ch >= "0" && ch <= "9") ||
+              (ch === "-" &&
+                i + 1 < len &&
+                str[i + 1] >= "0" &&
+                str[i + 1] <= "9"))
+          ) {
+            let j = i;
+            if (str[j] === "-") j++;
+            while (
+              j < len &&
+              ((str[j] >= "0" && str[j] <= "9") ||
+                str[j] === "." ||
+                str[j] === "e" ||
+                str[j] === "E" ||
+                str[j] === "+" ||
+                str[j] === "-")
+            )
+              j++;
+            const num = str.slice(i, j);
+            const secCls =
+              currentSection && sectionColors && sectionColors[currentSection]
+                ? sectionColors[currentSection]
+                : "j-num";
+            result += `<span class="${secCls}">${escapeHtml(num)}</span>`;
+            i = j;
+            continue;
+          }
+
+          // true/false/null
+          if (!inString && str.slice(i, i + 4) === "true") {
+            result += `<span class="j-bool">true</span>`;
+            i += 4;
+            continue;
+          }
+          if (!inString && str.slice(i, i + 5) === "false") {
+            result += `<span class="j-bool">false</span>`;
+            i += 5;
+            continue;
+          }
+          if (!inString && str.slice(i, i + 4) === "null") {
+            result += `<span class="j-null">null</span>`;
+            i += 4;
+            continue;
+          }
+
+          result += escapeHtml(ch);
+          i++;
+        }
+
+        return result;
+      }
+
+      // === Model Badge ===
+      function modelBadge(model) {
+        const m = model.toLowerCase();
+        let cls = "badge-openai",
+          label = model;
+        if (m.includes("claude")) {
+          cls = "badge-claude";
+        } else if (m.includes("gemini") || m.includes("google")) {
+          cls = "badge-gemini";
+        }
+        return `<div class="model-badge ${cls}"><span class="badge-dot"></span>${label}</div>`;
+      }
+
+      // === UI State helpers ===
+      function setCompressState(state) {
+        const btn = document.getElementById("compress-btn");
+        const status = document.getElementById("compress-status");
+        if (state === "loading") {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span> Compressing…';
+          status.textContent = "";
+        } else if (state === "done") {
+          btn.disabled = false;
+          btn.innerHTML = "Compress →";
+          status.textContent = "done";
+        } else if (state === "error") {
+          btn.disabled = false;
+          btn.innerHTML = "Compress →";
+          status.textContent = "error";
+        }
+      }
+
+      function setExpandState(state) {
+        const btn = document.getElementById("expand-btn");
+        const status = document.getElementById("expand-status");
+        if (state === "loading") {
+          btn.disabled = true;
+          btn.innerHTML = `<span class="spinner"></span> Expanding…`;
+          status.textContent = "";
+        } else if (state === "done") {
+          btn.disabled = false;
+          btn.innerHTML = `Expand for <span id="expand-target-label">${document.getElementById("target-model").value}</span>`;
+          status.textContent = "done";
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = `Expand for <span id="expand-target-label">${document.getElementById("target-model").value}</span>`;
+          status.textContent = state === "error" ? "error" : "";
+        }
+      }
+
+      function setHandoffState(state) {
+        const btn = document.getElementById("handoff-btn");
+        const status = document.getElementById("handoff-status");
+        if (state === "loading") {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span> Sending…';
+          status.textContent = "";
+        } else if (state === "done") {
+          btn.disabled = false;
+          btn.innerHTML = "Send →";
+          status.textContent = "done";
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = "Send →";
+          status.textContent = state === "error" ? "error" : "";
+        }
+      }
+
+      function enableExpandUI(targetModel) {
+        const row = document.getElementById("expand-btn-row");
+        const label = document.getElementById("expand-target-label");
+        row.style.display = "flex";
+        if (label) label.textContent = targetModel;
+
+        // Auto-expand
+        doExpand();
+      }
+
+      function enableHandoffUI() {
+        document.getElementById("handoff-pre").style.display = "none";
+        document.getElementById("handoff-form").style.display = "block";
+        // Sync target model
+        const tm = document.getElementById("target-model").value;
+        document.getElementById("handoff-target-model").value = tm;
+      }
+
+      // === Stats bar ===
+      function updateStats(packet, elapsed) {
+        const meta = packet.compression;
+        const ratio = meta.compression_ratio;
+        document.getElementById("stat-status").textContent = "ok";
+        document.getElementById("stat-status").className = "stat-value good";
+        document.getElementById("stat-original").textContent =
+          meta.original_token_count + " tok";
+        document.getElementById("stat-compressed").textContent =
+          meta.compressed_token_count + " tok";
+        document.getElementById("stat-ratio").textContent =
+          (ratio * 100).toFixed(0) + "%";
+        document.getElementById("stat-ratio").className =
+          "stat-value " + (ratio < 0.3 ? "good" : ratio < 0.6 ? "" : "warn");
+        document.getElementById("stat-rt").textContent = elapsed + "ms";
+        document.getElementById("stat-session").textContent =
+          packet.session_id.slice(0, 8) + "…";
+      }
+
+      function updateStatStatus(val) {
+        document.getElementById("stat-status").textContent = val;
+        document.getElementById("stat-status").className =
+          "stat-value" + (val === "error" ? "" : " good");
+      }
+
+      // === Error helpers ===
+      function showError(id, msg) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = msg;
+          el.style.display = "block";
+        }
+      }
+      function hideError(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = "none";
+          el.textContent = "";
+        }
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // === Sync target model selector → expand label ===
+      document
+        .getElementById("target-model")
+        .addEventListener("change", function () {
+          const label = document.getElementById("expand-target-label");
+          if (label) label.textContent = this.value;
+          // Also sync handoff selector
+          document.getElementById("handoff-target-model").value = this.value;
+        });
+    </script>
+  </body>
+</html>

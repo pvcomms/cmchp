@@ -1,0 +1,53 @@
+{
+  "name": "multimodel_chain",
+  "description": "Three-hop handoff: Claude → GPT-4o → Gemini. Building a Next.js app with auth, DB, deployment.",
+  "token_budget": 4000,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Build a minimal Next.js app: magic link auth, Postgres, deploy to Vercel. Claude started the scaffold."
+    },
+    {
+      "role": "assistant",
+      "content": "[GPT-4o continuing from Claude] Claude scaffolded: Next.js 15 App Router, Tailwind, TypeScript. I've added Prisma schema (User + MagicLink tables) and the /api/auth/send route using Resend for email. Pending: /api/auth/verify route, session cookie logic, and Vercel Postgres provisioning."
+    },
+    {
+      "role": "user",
+      "content": "The verify route needs to check token expiry (15 min) and be single-use."
+    },
+    {
+      "role": "assistant",
+      "content": "[GPT-4o] Correct. Verify route logic: 1) Find MagicLink by token, 2) Check createdAt + 15min > now, 3) Check used=false, 4) Mark used=true (atomic update), 5) Set session cookie (httpOnly, secure, sameSite=strict), 6) Redirect to /dashboard. I've written the route but haven't tested the atomic update — using Prisma transaction for steps 3-4."
+    },
+    {
+      "role": "user",
+      "content": "Good. What's left?"
+    },
+    {
+      "role": "assistant",
+      "content": "[GPT-4o] Remaining: 1) middleware.ts for auth protection (redirect to /login if no session), 2) /dashboard page placeholder, 3) Vercel Postgres connection string in .env, 4) prisma migrate deploy in Vercel build command, 5) Resend API key env var. Handing off to Gemini for the middleware + deployment config."
+    }
+  ],
+  "tool_history": [
+    {
+      "tool": "write_file",
+      "input": "prisma/schema.prisma",
+      "output": "Model User + MagicLink written"
+    },
+    {
+      "tool": "write_file",
+      "input": "app/api/auth/send/route.ts",
+      "output": "Send magic link route written, uses Resend"
+    },
+    {
+      "tool": "write_file",
+      "input": "app/api/auth/verify/route.ts",
+      "output": "Verify route written with Prisma transaction"
+    },
+    {
+      "tool": "bash",
+      "input": "npx prisma generate",
+      "output": "Generated Prisma client successfully"
+    }
+  ]
+}
